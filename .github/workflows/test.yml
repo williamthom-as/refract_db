@@ -1,0 +1,94 @@
+name: Elixir CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test against refract main
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: refract_db
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: refract_db_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: mysql
+          MYSQL_DATABASE: refract_db_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -pmysql"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        path: refract_db
+    - name: Check out refract core beside the plugin
+      uses: actions/checkout@v4
+      with:
+        repository: williamthom-as/refract
+        ref: main
+        path: refract
+        token: ${{ secrets.REFRACT_CHECKOUT_TOKEN }}
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.20.2'
+        otp-version: '28.5'
+    - name: Restore dependencies cache
+      uses: actions/cache@v3
+      with:
+        path: refract_db/deps
+        key: ${{ runner.os }}-mix-${{ hashFiles('refract_db/mix.lock', 'refract/mix.lock') }}
+        restore-keys: ${{ runner.os }}-mix-
+    - name: Install dependencies
+      run: mix deps.get
+    - name: Compile code
+      run: mix compile --warnings-as-errors
+    - name: Check formatting
+      run: mix format --check-formatted
+    - name: Credo
+      run: mix credo --strict
+    - name: Run tests
+      run: mix test
+      env:
+        MIX_ENV: test
+        REQUIRE_POSTGRES: "true"
+        REQUIRE_MYSQL: "true"
+
+    # dialyzer last since its slowest
+    - name: Restore PLT cache
+      uses: actions/cache@v3
+      with:
+        path: refract_db/priv/plts
+        key: ${{ runner.os }}-plt-otp28.5-elixir1.20.2-${{ hashFiles('refract_db/mix.lock', 'refract_db/mix.exs', 'refract/mix.lock', 'refract/lib/**/*.ex') }}
+    - name: Build PLT
+      run: mix dialyzer --plt
+    - name: Dialyzer
+      run: mix dialyzer --force-check --format short
