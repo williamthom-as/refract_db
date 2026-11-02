@@ -13,3 +13,5 @@ refract-*.tar
 /sandpit/
 
 /priv/plts/
+
+/bench/

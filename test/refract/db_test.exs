@@ -249,10 +249,28 @@ defmodule Refract.DBTest do
                Refract.DB.profile(accounts_source(table), account_shape(), page_size: 2)
     end
 
-    test "load needs a sized source" do
-      table = Fixture.accounts!(Fixture.accounts(1))
+    test "load needs max_rows:, a query has no byte size" do
+      table = Fixture.accounts!(Fixture.accounts(3))
 
       assert {:error, {:unsupported_source, _source}} = Refract.DB.load(accounts_source(table))
+      assert {:ok, %Refract.Grid{} = grid} = Refract.DB.load(accounts_source(table), max_rows: 10)
+      assert Refract.Grid.cell(grid, "B4") == "A-3"
+
+      assert {:error, {:max_rows_exceeded, 2}} =
+               Refract.DB.load(accounts_source(table), max_rows: 2)
+    end
+
+    test "document rules validate a table under max_rows:" do
+      table = Fixture.accounts!(Fixture.accounts(3))
+
+      shape =
+        account_shape(
+          document: [{:three_accounts, fn %{rows: rows} -> length(rows) == 3 end}],
+          columns: %{"account" => [:required]}
+        )
+
+      assert {:ok, %Refract.Validate.Result{valid: true, rows: 3}} =
+               Refract.DB.validate(accounts_source(table), shape, max_rows: 100)
     end
   end
 end
