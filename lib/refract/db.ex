@@ -60,6 +60,11 @@ defmodule Refract.DB do
   @impl Refract.Reader
   def indexing, do: :records
 
+  @spec open_options() :: keyword()
+
+  @impl Refract.Reader
+  def open_options, do: [page_size: 500]
+
   @spec open(Refract.source(), [open_opt()]) :: {:ok, Enumerable.t()} | {:error, term()}
 
   @impl Refract.Reader
@@ -131,7 +136,7 @@ defmodule Refract.DB do
   defp facts_of(source, _page_size), do: {:error, {:unsupported_source, source}}
 
   defp page_size!(opts) do
-    opts = Keyword.validate!(opts, page_size: 500)
+    opts = Keyword.validate!(opts, open_options())
     page_size = Keyword.fetch!(opts, :page_size)
 
     validate_positive_integer!(page_size, :page_size)
