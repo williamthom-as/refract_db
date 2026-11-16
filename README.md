@@ -1,6 +1,6 @@
 # refract_db
 
-database reader for [refract](https://github.com/williamthom-as/refract), through ecto.
+database reader for [refract](https://github.com/williamthom-as/refract_core), through ecto.
 
 - `Refract.DB.source/3` wraps a repo and a query (a schema, `{table, schema}` or any `Ecto.Query`)
 - every reader tool works on it: `stream`, `locate`, `classify`, `suggest`, `profile`, `validate`
@@ -27,6 +27,13 @@ sqlite always; postgres when reachable (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWOR
 ## Install
 
 ```elixir
-{:refract, path: "../refract"},
-{:refract_db, path: "../refract_db"}
+{:refract_db, github: "williamthom-as/refract_db", tag: "v0.1.0"}
 ```
+
+## Development
+
+against local checkouts: `REFRACT_PATH=../refract mix test`
+
+## License
+
+Apache-2.0, see [LICENSE](LICENSE).

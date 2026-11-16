@@ -33,7 +33,7 @@ defmodule RefractDb.MixProject do
 
   defp deps do
     [
-      {:refract, path: "../refract"},
+      refract_dep(:refract, "refract_core", "v0.1.0"),
       {:ecto_sql, "~> 3.13"},
       {:decimal, "~> 2.0 or ~> 3.0"},
       {:ecto_sqlite3, "~> 0.17", only: :test},
@@ -43,5 +43,12 @@ defmodule RefractDb.MixProject do
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
+  end
+
+  defp refract_dep(app, repo, tag, opts \\ []) do
+    case System.get_env("#{String.upcase(to_string(app))}_PATH") do
+      nil -> {app, [github: "williamthom-as/#{repo}", tag: tag] ++ opts}
+      path -> {app, [path: path, override: true] ++ opts}
+    end
   end
 end
